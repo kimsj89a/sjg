@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>프로젝트 Gantt Chart 관리 도구</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: 280px;
+            background: #16213e;
+            padding: 20px;
+            border-right: 1px solid #0f3460;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar h1 {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            color: #e94560;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar h1::before {
+            content: "📊";
+        }
+
+        .add-project-btn {
+            background: #e94560;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            margin-bottom: 20px;
+            transition: background 0.3s;
+        }
+
+        .add-project-btn:hover {
+            background: #ff6b6b;
+        }
+
+        .project-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .project-item {
+            padding: 12px 15px;
+            background: #1a1a2e;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .project-item:hover {
+            background: #0f3460;
+        }
+
+        .project-item.active {
+            background: #0f3460;
+            border-left: 3px solid #e94560;
+        }
+
+        .project-item-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .project-item-actions {
+            display: none;
+            gap: 5px;
+        }
+
+        .project-item:hover .project-item-actions {
+            display: flex;
+        }
+
+        .project-item-actions button {
+            background: none;
+            border: none;
+            color: #aaa;
+            cursor: pointer;
+            padding: 2px 5px;
+            font-size: 0.85rem;
+        }
+
+        .project-item-actions button:hover {
+            color: #e94560;
+        }
+
+        /* Main Content Styles */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            padding: 20px 30px;
+            background: #16213e;
+            border-bottom: 1px solid #0f3460;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h2 {
+            font-size: 1.5rem;
+            color: #fff;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .header-actions button {
+            background: #0f3460;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .header-actions button:hover {
+            background: #e94560;
+        }
+
+        .content-wrapper {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* Gantt Chart Area */
+        .gantt-area {
+            flex: 1;
+            overflow: auto;
+            padding: 20px;
+        }
+
+        .gantt-container {
+            min-width: 100%;
+        }
+
+        .gantt-header {
+            display: flex;
+            border-bottom: 2px solid #0f3460;
+            position: sticky;
+            top: 0;
+            background: #1a1a2e;
+            z-index: 10;
+        }
+
+        .gantt-task-header {
+            width: 250px;
+            min-width: 250px;
+            padding: 10px 15px;
+            font-weight: bold;
+            color: #e94560;
+            border-right: 1px solid #0f3460;
+        }
+
+        .gantt-timeline-header {
+            flex: 1;
+            display: flex;
+        }
+
+        .gantt-day {
+            width: 40px;
+            min-width: 40px;
+            text-align: center;
+            padding: 10px 0;
+            font-size: 0.75rem;
+            color: #aaa;
+            border-right: 1px solid #0f3460;
+        }
+
+        .gantt-day.weekend {
+            background: rgba(233, 69, 96, 0.1);
+        }
+
+        .gantt-day.today {
+            background: rgba(233, 69, 96, 0.3);
+            color: #e94560;
+            font-weight: bold;
+        }
+
+        .gantt-body {
+            position: relative;
+        }
+
+        .gantt-row {
+            display: flex;
+            border-bottom: 1px solid #0f3460;
+            min-height: 50px;
+        }
+
+        .gantt-row:hover {
+            background: rgba(15, 52, 96, 0.3);
+        }
+
+        .gantt-task-cell {
+            width: 250px;
+            min-width: 250px;
+            padding: 10px 15px;
+            border-right: 1px solid #0f3460;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .task-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+
+        .task-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        .task-name:hover {
+            color: #e94560;
+        }
+
+        .gantt-timeline-cell {
+            flex: 1;
+            display: flex;
+            position: relative;
+        }
+
+        .gantt-cell-day {
+            width: 40px;
+            min-width: 40px;
+            border-right: 1px solid #0f3460;
+        }
+
+        .gantt-cell-day.weekend {
+            background: rgba(233, 69, 96, 0.05);
+        }
+
+        .gantt-bar {
+            position: absolute;
+            height: 28px;
+            top: 50%;
+            transform: translateY(-50%);
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            font-size: 0.75rem;
+            color: white;
+            transition: opacity 0.2s;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .gantt-bar:hover {
+            opacity: 0.8;
+        }
+
+        .gantt-bar-progress {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px 0 0 4px;
+        }
+
+        .gantt-bar-text {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Empty State */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #666;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .empty-state h3 {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+            color: #aaa;
+        }
+
+        .empty-state p {
+            color: #666;
+        }
+
+        /* Memo Panel */
+        .memo-panel {
+            width: 320px;
+            background: #16213e;
+            border-left: 1px solid #0f3460;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .memo-panel.hidden {
+            display: none;
+        }
+
+        .memo-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #0f3460;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .memo-header h3 {
+            font-size: 1rem;
+            color: #e94560;
+        }
+
+        .memo-close {
+            background: none;
+            border: none;
+            color: #aaa;
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+
+        .memo-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .memo-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .memo-item {
+            background: #1a1a2e;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 3px solid #e94560;
+        }
+
+        .memo-item-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 0.8rem;
+            color: #aaa;
+        }
+
+        .memo-item-content {
+            white-space: pre-wrap;
+            line-height: 1.5;
+        }
+
+        .memo-item-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .memo-item-actions button {
+            background: none;
+            border: none;
+            color: #aaa;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .memo-item-actions button:hover {
+            color: #e94560;
+        }
+
+        .add-memo-btn {
+            margin-top: 15px;
+            background: #0f3460;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .add-memo-btn:hover {
+            background: #e94560;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.hidden {
+            display: none;
+        }
+
+        .modal {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 30px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal h3 {
+            margin-bottom: 20px;
+            color: #e94560;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #0f3460;
+            border-radius: 6px;
+            background: #1a1a2e;
+            color: #fff;
+            font-size: 1rem;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #e94560;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        .color-options {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .color-option {
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: transform 0.2s;
+        }
+
+        .color-option:hover {
+            transform: scale(1.1);
+        }
+
+        .color-option.selected {
+            border-color: #fff;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .modal-actions button {
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            border: none;
+        }
+
+        .btn-cancel {
+            background: #0f3460;
+            color: #fff;
+        }
+
+        .btn-save {
+            background: #e94560;
+            color: #fff;
+        }
+
+        .btn-delete {
+            background: #ff4757;
+            color: #fff;
+        }
+
+        .modal-actions button:hover {
+            opacity: 0.9;
+        }
+
+        /* Zoom Controls */
+        .zoom-controls {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+
+        .zoom-controls button {
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .zoom-controls span {
+            margin: 0 10px;
+            font-size: 0.85rem;
+            color: #aaa;
+        }
+
+        /* Progress Slider */
+        .progress-slider {
+            width: 100%;
+            height: 8px;
+            -webkit-appearance: none;
+            background: #0f3460;
+            border-radius: 4px;
+            outline: none;
+        }
+
+        .progress-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #e94560;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .progress-value {
+            text-align: center;
+            margin-top: 5px;
+            color: #aaa;
+            font-size: 0.85rem;
+        }
+
+        /* Scrollbar Styles */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1a1a2e;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #0f3460;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #e94560;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 60px;
+                padding: 10px;
+            }
+
+            .sidebar h1 {
+                font-size: 0;
+            }
+
+            .sidebar h1::before {
+                font-size: 1.5rem;
+            }
+
+            .add-project-btn {
+                padding: 10px;
+                font-size: 0;
+            }
+
+            .add-project-btn::before {
+                content: "+";
+                font-size: 1.2rem;
+            }
+
+            .project-item-name {
+                display: none;
+            }
+
+            .memo-panel {
+                position: fixed;
+                right: 0;
+                top: 0;
+                bottom: 0;
+                z-index: 100;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <h1>Gantt Manager</h1>
+            <button class="add-project-btn" onclick="openProjectModal()">+ 새 프로젝트</button>
+            <div class="project-list" id="projectList"></div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="header">
+                <h2 id="currentProjectName">프로젝트를 선택하세요</h2>
+                <div class="header-actions" id="headerActions" style="display: none;">
+                    <div class="zoom-controls">
+                        <button onclick="zoomOut()" title="축소">−</button>
+                        <span id="zoomLevel">100%</span>
+                        <button onclick="zoomIn()" title="확대">+</button>
+                    </div>
+                    <button onclick="toggleMemo()">📝 메모</button>
+                    <button onclick="openTaskModal()">+ 태스크 추가</button>
+                </div>
+            </header>
+
+            <div class="content-wrapper">
+                <div class="gantt-area" id="ganttArea">
+                    <div class="empty-state" id="emptyState">
+                        <div class="empty-state-icon">📊</div>
+                        <h3>프로젝트를 선택하거나 새로 만드세요</h3>
+                        <p>왼쪽 사이드바에서 프로젝트를 선택하거나<br>새 프로젝트를 추가하세요</p>
+                    </div>
+                    <div class="gantt-container" id="ganttContainer" style="display: none;"></div>
+                </div>
+
+                <!-- Memo Panel -->
+                <aside class="memo-panel hidden" id="memoPanel">
+                    <div class="memo-header">
+                        <h3>📝 프로젝트 메모</h3>
+                        <button class="memo-close" onclick="toggleMemo()">×</button>
+                    </div>
+                    <div class="memo-content">
+                        <div class="memo-list" id="memoList"></div>
+                        <button class="add-memo-btn" onclick="openMemoModal()">+ 메모 추가</button>
+                    </div>
+                </aside>
+            </div>
+        </main>
+    </div>
+
+    <!-- Project Modal -->
+    <div class="modal-overlay hidden" id="projectModal">
+        <div class="modal">
+            <h3 id="projectModalTitle">새 프로젝트</h3>
+            <div class="form-group">
+                <label>프로젝트 이름</label>
+                <input type="text" id="projectName" placeholder="프로젝트 이름을 입력하세요">
+            </div>
+            <div class="form-group">
+                <label>설명 (선택)</label>
+                <textarea id="projectDescription" placeholder="프로젝트 설명을 입력하세요"></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeProjectModal()">취소</button>
+                <button class="btn-delete" id="deleteProjectBtn" onclick="deleteProject()" style="display: none;">삭제</button>
+                <button class="btn-save" onclick="saveProject()">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Modal -->
+    <div class="modal-overlay hidden" id="taskModal">
+        <div class="modal">
+            <h3 id="taskModalTitle">새 태스크</h3>
+            <div class="form-group">
+                <label>태스크 이름</label>
+                <input type="text" id="taskName" placeholder="태스크 이름을 입력하세요">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>시작일</label>
+                    <input type="date" id="taskStartDate">
+                </div>
+                <div class="form-group">
+                    <label>종료일</label>
+                    <input type="date" id="taskEndDate">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>진행률</label>
+                <input type="range" class="progress-slider" id="taskProgress" min="0" max="100" value="0" oninput="updateProgressValue()">
+                <div class="progress-value" id="progressValue">0%</div>
+            </div>
+            <div class="form-group">
+                <label>색상</label>
+                <div class="color-options" id="colorOptions"></div>
+            </div>
+            <div class="form-group">
+                <label>메모 (선택)</label>
+                <textarea id="taskMemo" placeholder="태스크 메모를 입력하세요"></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeTaskModal()">취소</button>
+                <button class="btn-delete" id="deleteTaskBtn" onclick="deleteTask()" style="display: none;">삭제</button>
+                <button class="btn-save" onclick="saveTask()">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Memo Modal -->
+    <div class="modal-overlay hidden" id="memoModal">
+        <div class="modal">
+            <h3 id="memoModalTitle">새 메모</h3>
+            <div class="form-group">
+                <label>메모 내용</label>
+                <textarea id="memoContent" placeholder="메모 내용을 입력하세요" style="min-height: 150px;"></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeMemoModal()">취소</button>
+                <button class="btn-delete" id="deleteMemoBtn" onclick="deleteMemo()" style="display: none;">삭제</button>
+                <button class="btn-save" onclick="saveMemo()">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Color Palette
+        const COLORS = [
+            '#e94560', '#ff6b6b', '#feca57', '#48dbfb', '#1dd1a1',
+            '#5f27cd', '#00d2d3', '#ff9ff3', '#54a0ff', '#c8d6e5'
+        ];
+
+        // App State
+        let state = {
+            projects: [],
+            currentProjectId: null,
+            zoom: 100,
+            dayWidth: 40,
+            editingProjectId: null,
+            editingTaskId: null,
+            editingMemoId: null
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadState();
+            renderProjects();
+            initColorOptions();
+            setDefaultDates();
+        });
+
+        // LocalStorage Functions
+        function loadState() {
+            const saved = localStorage.getItem('ganttManagerState');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                state.projects = parsed.projects || [];
+                state.currentProjectId = parsed.currentProjectId || null;
+            }
+        }
+
+        function saveState() {
+            localStorage.setItem('ganttManagerState', JSON.stringify({
+                projects: state.projects,
+                currentProjectId: state.currentProjectId
+            }));
+        }
+
+        // Project Functions
+        function renderProjects() {
+            const list = document.getElementById('projectList');
+            list.innerHTML = state.projects.map(project => `
+                <div class="project-item ${project.id === state.currentProjectId ? 'active' : ''}"
+                     onclick="selectProject('${project.id}')">
+                    <span class="project-item-name">${escapeHtml(project.name)}</span>
+                    <div class="project-item-actions">
+                        <button onclick="event.stopPropagation(); editProject('${project.id}')">✎</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function selectProject(projectId) {
+            state.currentProjectId = projectId;
+            saveState();
+            renderProjects();
+            renderGantt();
+        }
+
+        function openProjectModal(projectId = null) {
+            state.editingProjectId = projectId;
+            const modal = document.getElementById('projectModal');
+            const title = document.getElementById('projectModalTitle');
+            const nameInput = document.getElementById('projectName');
+            const descInput = document.getElementById('projectDescription');
+            const deleteBtn = document.getElementById('deleteProjectBtn');
+
+            if (projectId) {
+                const project = state.projects.find(p => p.id === projectId);
+                title.textContent = '프로젝트 수정';
+                nameInput.value = project.name;
+                descInput.value = project.description || '';
+                deleteBtn.style.display = 'block';
+            } else {
+                title.textContent = '새 프로젝트';
+                nameInput.value = '';
+                descInput.value = '';
+                deleteBtn.style.display = 'none';
+            }
+
+            modal.classList.remove('hidden');
+            nameInput.focus();
+        }
+
+        function closeProjectModal() {
+            document.getElementById('projectModal').classList.add('hidden');
+            state.editingProjectId = null;
+        }
+
+        function saveProject() {
+            const name = document.getElementById('projectName').value.trim();
+            const description = document.getElementById('projectDescription').value.trim();
+
+            if (!name) {
+                alert('프로젝트 이름을 입력하세요');
+                return;
+            }
+
+            if (state.editingProjectId) {
+                const project = state.projects.find(p => p.id === state.editingProjectId);
+                project.name = name;
+                project.description = description;
+            } else {
+                const newProject = {
+                    id: generateId(),
+                    name,
+                    description,
+                    tasks: [],
+                    memos: [],
+                    createdAt: new Date().toISOString()
+                };
+                state.projects.push(newProject);
+                state.currentProjectId = newProject.id;
+            }
+
+            saveState();
+            renderProjects();
+            renderGantt();
+            closeProjectModal();
+        }
+
+        function editProject(projectId) {
+            openProjectModal(projectId);
+        }
+
+        function deleteProject() {
+            if (!confirm('정말로 이 프로젝트를 삭제하시겠습니까?')) return;
+
+            state.projects = state.projects.filter(p => p.id !== state.editingProjectId);
+            if (state.currentProjectId === state.editingProjectId) {
+                state.currentProjectId = state.projects.length > 0 ? state.projects[0].id : null;
+            }
+
+            saveState();
+            renderProjects();
+            renderGantt();
+            closeProjectModal();
+        }
+
+        // Task Functions
+        function openTaskModal(taskId = null) {
+            if (!state.currentProjectId) {
+                alert('먼저 프로젝트를 선택하세요');
+                return;
+            }
+
+            state.editingTaskId = taskId;
+            const modal = document.getElementById('taskModal');
+            const title = document.getElementById('taskModalTitle');
+            const deleteBtn = document.getElementById('deleteTaskBtn');
+
+            if (taskId) {
+                const project = getCurrentProject();
+                const task = project.tasks.find(t => t.id === taskId);
+                title.textContent = '태스크 수정';
+                document.getElementById('taskName').value = task.name;
+                document.getElementById('taskStartDate').value = task.startDate;
+                document.getElementById('taskEndDate').value = task.endDate;
+                document.getElementById('taskProgress').value = task.progress || 0;
+                document.getElementById('taskMemo').value = task.memo || '';
+                updateProgressValue();
+                selectColor(task.color || COLORS[0]);
+                deleteBtn.style.display = 'block';
+            } else {
+                title.textContent = '새 태스크';
+                document.getElementById('taskName').value = '';
+                document.getElementById('taskProgress').value = 0;
+                document.getElementById('taskMemo').value = '';
+                updateProgressValue();
+                setDefaultDates();
+                selectColor(COLORS[0]);
+                deleteBtn.style.display = 'none';
+            }
+
+            modal.classList.remove('hidden');
+            document.getElementById('taskName').focus();
+        }
+
+        function closeTaskModal() {
+            document.getElementById('taskModal').classList.add('hidden');
+            state.editingTaskId = null;
+        }
+
+        function saveTask() {
+            const name = document.getElementById('taskName').value.trim();
+            const startDate = document.getElementById('taskStartDate').value;
+            const endDate = document.getElementById('taskEndDate').value;
+            const progress = parseInt(document.getElementById('taskProgress').value);
+            const memo = document.getElementById('taskMemo').value.trim();
+            const color = document.querySelector('.color-option.selected')?.dataset.color || COLORS[0];
+
+            if (!name) {
+                alert('태스크 이름을 입력하세요');
+                return;
+            }
+
+            if (!startDate || !endDate) {
+                alert('시작일과 종료일을 입력하세요');
+                return;
+            }
+
+            if (new Date(startDate) > new Date(endDate)) {
+                alert('종료일은 시작일보다 늦어야 합니다');
+                return;
+            }
+
+            const project = getCurrentProject();
+
+            if (state.editingTaskId) {
+                const task = project.tasks.find(t => t.id === state.editingTaskId);
+                task.name = name;
+                task.startDate = startDate;
+                task.endDate = endDate;
+                task.progress = progress;
+                task.memo = memo;
+                task.color = color;
+            } else {
+                project.tasks.push({
+                    id: generateId(),
+                    name,
+                    startDate,
+                    endDate,
+                    progress,
+                    memo,
+                    color,
+                    createdAt: new Date().toISOString()
+                });
+            }
+
+            saveState();
+            renderGantt();
+            closeTaskModal();
+        }
+
+        function deleteTask() {
+            if (!confirm('정말로 이 태스크를 삭제하시겠습니까?')) return;
+
+            const project = getCurrentProject();
+            project.tasks = project.tasks.filter(t => t.id !== state.editingTaskId);
+
+            saveState();
+            renderGantt();
+            closeTaskModal();
+        }
+
+        // Memo Functions
+        function toggleMemo() {
+            const panel = document.getElementById('memoPanel');
+            panel.classList.toggle('hidden');
+            if (!panel.classList.contains('hidden')) {
+                renderMemos();
+            }
+        }
+
+        function renderMemos() {
+            const project = getCurrentProject();
+            if (!project) return;
+
+            const list = document.getElementById('memoList');
+            const memos = project.memos || [];
+
+            if (memos.length === 0) {
+                list.innerHTML = '<p style="color: #666; text-align: center;">메모가 없습니다</p>';
+                return;
+            }
+
+            list.innerHTML = memos.map(memo => `
+                <div class="memo-item">
+                    <div class="memo-item-header">
+                        <span>${formatDate(memo.createdAt)}</span>
+                    </div>
+                    <div class="memo-item-content">${escapeHtml(memo.content)}</div>
+                    <div class="memo-item-actions">
+                        <button onclick="editMemo('${memo.id}')">수정</button>
+                        <button onclick="deleteMemoItem('${memo.id}')">삭제</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openMemoModal(memoId = null) {
+            state.editingMemoId = memoId;
+            const modal = document.getElementById('memoModal');
+            const title = document.getElementById('memoModalTitle');
+            const deleteBtn = document.getElementById('deleteMemoBtn');
+            const contentInput = document.getElementById('memoContent');
+
+            if (memoId) {
+                const project = getCurrentProject();
+                const memo = project.memos.find(m => m.id === memoId);
+                title.textContent = '메모 수정';
+                contentInput.value = memo.content;
+                deleteBtn.style.display = 'block';
+            } else {
+                title.textContent = '새 메모';
+                contentInput.value = '';
+                deleteBtn.style.display = 'none';
+            }
+
+            modal.classList.remove('hidden');
+            contentInput.focus();
+        }
+
+        function closeMemoModal() {
+            document.getElementById('memoModal').classList.add('hidden');
+            state.editingMemoId = null;
+        }
+
+        function saveMemo() {
+            const content = document.getElementById('memoContent').value.trim();
+
+            if (!content) {
+                alert('메모 내용을 입력하세요');
+                return;
+            }
+
+            const project = getCurrentProject();
+            if (!project.memos) project.memos = [];
+
+            if (state.editingMemoId) {
+                const memo = project.memos.find(m => m.id === state.editingMemoId);
+                memo.content = content;
+                memo.updatedAt = new Date().toISOString();
+            } else {
+                project.memos.unshift({
+                    id: generateId(),
+                    content,
+                    createdAt: new Date().toISOString()
+                });
+            }
+
+            saveState();
+            renderMemos();
+            closeMemoModal();
+        }
+
+        function editMemo(memoId) {
+            openMemoModal(memoId);
+        }
+
+        function deleteMemo() {
+            if (!confirm('정말로 이 메모를 삭제하시겠습니까?')) return;
+            deleteMemoItem(state.editingMemoId);
+            closeMemoModal();
+        }
+
+        function deleteMemoItem(memoId) {
+            const project = getCurrentProject();
+            project.memos = project.memos.filter(m => m.id !== memoId);
+            saveState();
+            renderMemos();
+        }
+
+        // Gantt Chart Rendering
+        function renderGantt() {
+            const project = getCurrentProject();
+            const container = document.getElementById('ganttContainer');
+            const emptyState = document.getElementById('emptyState');
+            const headerActions = document.getElementById('headerActions');
+            const projectName = document.getElementById('currentProjectName');
+
+            if (!project) {
+                container.style.display = 'none';
+                emptyState.style.display = 'flex';
+                headerActions.style.display = 'none';
+                projectName.textContent = '프로젝트를 선택하세요';
+                return;
+            }
+
+            projectName.textContent = project.name;
+            headerActions.style.display = 'flex';
+
+            if (project.tasks.length === 0) {
+                container.style.display = 'none';
+                emptyState.innerHTML = `
+                    <div class="empty-state-icon">📋</div>
+                    <h3>태스크가 없습니다</h3>
+                    <p>새 태스크를 추가하여 프로젝트 일정을 관리하세요</p>
+                `;
+                emptyState.style.display = 'flex';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+            container.style.display = 'block';
+
+            const { startDate, endDate, days } = calculateDateRange(project.tasks);
+            const dayWidth = state.dayWidth * (state.zoom / 100);
+
+            // Render Header
+            let headerHtml = `
+                <div class="gantt-header">
+                    <div class="gantt-task-header">태스크</div>
+                    <div class="gantt-timeline-header">
+            `;
+
+            days.forEach(day => {
+                const date = new Date(day);
+                const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+                const isToday = isSameDay(date, new Date());
+                headerHtml += `
+                    <div class="gantt-day ${isWeekend ? 'weekend' : ''} ${isToday ? 'today' : ''}"
+                         style="width: ${dayWidth}px; min-width: ${dayWidth}px;">
+                        ${formatShortDate(day)}
+                    </div>
+                `;
+            });
+
+            headerHtml += '</div></div>';
+
+            // Render Body
+            let bodyHtml = '<div class="gantt-body">';
+
+            project.tasks.forEach(task => {
+                const taskStart = new Date(task.startDate);
+                const taskEnd = new Date(task.endDate);
+                const startOffset = Math.floor((taskStart - startDate) / (1000 * 60 * 60 * 24));
+                const duration = Math.floor((taskEnd - taskStart) / (1000 * 60 * 60 * 24)) + 1;
+                const left = startOffset * dayWidth;
+                const width = duration * dayWidth - 4;
+
+                bodyHtml += `
+                    <div class="gantt-row">
+                        <div class="gantt-task-cell">
+                            <div class="task-color" style="background: ${task.color}"></div>
+                            <span class="task-name" onclick="openTaskModal('${task.id}')">${escapeHtml(task.name)}</span>
+                        </div>
+                        <div class="gantt-timeline-cell">
+                `;
+
+                days.forEach(day => {
+                    const date = new Date(day);
+                    const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+                    bodyHtml += `<div class="gantt-cell-day ${isWeekend ? 'weekend' : ''}" style="width: ${dayWidth}px; min-width: ${dayWidth}px;"></div>`;
+                });
+
+                bodyHtml += `
+                            <div class="gantt-bar"
+                                 style="left: ${left + 252}px; width: ${width}px; background: ${task.color};"
+                                 onclick="openTaskModal('${task.id}')"
+                                 title="${escapeHtml(task.name)} (${task.progress}%)">
+                                <div class="gantt-bar-progress" style="width: ${task.progress}%"></div>
+                                <span class="gantt-bar-text">${task.progress}%</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            bodyHtml += '</div>';
+
+            container.innerHTML = headerHtml + bodyHtml;
+        }
+
+        function calculateDateRange(tasks) {
+            if (tasks.length === 0) {
+                const today = new Date();
+                return {
+                    startDate: today,
+                    endDate: new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000),
+                    days: generateDays(today, 30)
+                };
+            }
+
+            let minDate = new Date(tasks[0].startDate);
+            let maxDate = new Date(tasks[0].endDate);
+
+            tasks.forEach(task => {
+                const start = new Date(task.startDate);
+                const end = new Date(task.endDate);
+                if (start < minDate) minDate = start;
+                if (end > maxDate) maxDate = end;
+            });
+
+            // Add padding
+            minDate.setDate(minDate.getDate() - 3);
+            maxDate.setDate(maxDate.getDate() + 7);
+
+            const days = generateDays(minDate, Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24)));
+
+            return { startDate: minDate, endDate: maxDate, days };
+        }
+
+        function generateDays(startDate, count) {
+            const days = [];
+            const current = new Date(startDate);
+            for (let i = 0; i < count; i++) {
+                days.push(current.toISOString().split('T')[0]);
+                current.setDate(current.getDate() + 1);
+            }
+            return days;
+        }
+
+        // Zoom Functions
+        function zoomIn() {
+            if (state.zoom < 200) {
+                state.zoom += 20;
+                document.getElementById('zoomLevel').textContent = state.zoom + '%';
+                renderGantt();
+            }
+        }
+
+        function zoomOut() {
+            if (state.zoom > 40) {
+                state.zoom -= 20;
+                document.getElementById('zoomLevel').textContent = state.zoom + '%';
+                renderGantt();
+            }
+        }
+
+        // Utility Functions
+        function getCurrentProject() {
+            return state.projects.find(p => p.id === state.currentProjectId);
+        }
+
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('ko-KR', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function formatShortDate(dateStr) {
+            const date = new Date(dateStr);
+            return `${date.getMonth() + 1}/${date.getDate()}`;
+        }
+
+        function isSameDay(date1, date2) {
+            return date1.getFullYear() === date2.getFullYear() &&
+                   date1.getMonth() === date2.getMonth() &&
+                   date1.getDate() === date2.getDate();
+        }
+
+        function setDefaultDates() {
+            const today = new Date();
+            const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+            document.getElementById('taskStartDate').value = today.toISOString().split('T')[0];
+            document.getElementById('taskEndDate').value = nextWeek.toISOString().split('T')[0];
+        }
+
+        function initColorOptions() {
+            const container = document.getElementById('colorOptions');
+            container.innerHTML = COLORS.map(color => `
+                <div class="color-option"
+                     style="background: ${color}"
+                     data-color="${color}"
+                     onclick="selectColor('${color}')"></div>
+            `).join('');
+            selectColor(COLORS[0]);
+        }
+
+        function selectColor(color) {
+            document.querySelectorAll('.color-option').forEach(opt => {
+                opt.classList.toggle('selected', opt.dataset.color === color);
+            });
+        }
+
+        function updateProgressValue() {
+            const value = document.getElementById('taskProgress').value;
+            document.getElementById('progressValue').textContent = value + '%';
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeProjectModal();
+                closeTaskModal();
+                closeMemoModal();
+            }
+        });
+    </script>
+</body>
+</html>

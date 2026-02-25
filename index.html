@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MOVO AI - AI 프레젠테이션 메이커</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+  <div id="app">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-top">
+        <div class="logo">
+          <div class="logo-icon">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+              <rect width="28" height="28" rx="6" fill="#4F46E5"/>
+              <path d="M7 14L11 8L15 14L19 8L23 14" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M7 20L11 14L15 20L19 14L23 20" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
+            </svg>
+          </div>
+          <span class="logo-text">MOVO</span>
+        </div>
+        <button class="btn-create" onclick="app.navigate('dashboard')">
+          <i class="fas fa-plus"></i>
+          <span>CREATE WITH MOVO</span>
+        </button>
+        <nav class="sidebar-nav">
+          <a href="#" class="nav-item active" data-page="dashboard" onclick="app.navigate('dashboard')">
+            <i class="fas fa-folder"></i>
+            <span>My Projects</span>
+          </a>
+          <a href="#" class="nav-item" data-page="templates" onclick="app.navigate('dashboard')">
+            <i class="fas fa-th-large"></i>
+            <span>Template</span>
+          </a>
+        </nav>
+      </div>
+      <div class="sidebar-bottom">
+        <a href="#" class="nav-item">
+          <i class="fas fa-question-circle"></i>
+          <span>도움말</span>
+        </a>
+        <a href="#" class="nav-item">
+          <i class="fas fa-headset"></i>
+          <span>고객센터</span>
+        </a>
+        <div class="sidebar-user">
+          <div class="user-avatar">허</div>
+          <div class="user-info">
+            <span class="user-name">허수빈</span>
+            <span class="user-plan">Free Plan</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main id="main-content" class="main-content">
+      <!-- Dashboard Page -->
+      <div id="page-dashboard" class="page active">
+        <div class="dashboard-container">
+          <div class="dashboard-header">
+            <h1 class="greeting">아이디어가 떠오르셨나요 <span class="highlight">허수빈</span>님?</h1>
+            <div class="export-buttons">
+              <button class="btn-export">
+                <i class="fab fa-figma"></i>
+                Export to Figma
+              </button>
+              <button class="btn-export">
+                <i class="fas fa-file-powerpoint"></i>
+                Export to PowerPoint
+              </button>
+            </div>
+          </div>
+
+          <div class="input-section">
+            <div class="input-wrapper">
+              <textarea id="slide-input" placeholder="만들고 싶은 슬라이드 내용을 입력하세요" rows="3"></textarea>
+              <div class="input-footer">
+                <div class="slide-count">
+                  <label>슬라이드 개수:</label>
+                  <div class="count-selector">
+                    <button class="count-btn minus" onclick="app.adjustSlideCount(-1)">−</button>
+                    <span id="slide-count-value">5</span>
+                    <button class="count-btn plus" onclick="app.adjustSlideCount(1)">+</button>
+                  </div>
+                </div>
+                <button class="btn-generate" onclick="app.generateOutline()">
+                  <i class="fas fa-magic"></i>
+                  생성하기
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="quick-tags">
+            <button class="tag" onclick="app.setInput('투자 피칭덱')">투자 피칭덱</button>
+            <button class="tag" onclick="app.setInput('분기 실적 보고')">분기 실적 보고</button>
+            <button class="tag" onclick="app.setInput('제품 소개서')">제품 소개서</button>
+            <button class="tag" onclick="app.setInput('슬라이드를 가져올 수도 있어요')">
+              <i class="fas fa-upload"></i>
+              슬라이드를 가져올 수도 있어요
+            </button>
+          </div>
+
+          <div class="category-section">
+            <div class="category-tabs">
+              <button class="cat-tab active" onclick="app.selectCategory(this, 'all')">전체</button>
+              <button class="cat-tab" onclick="app.selectCategory(this, 'business')">비즈니스</button>
+              <button class="cat-tab" onclick="app.selectCategory(this, 'report')">보고서 / 제안</button>
+              <button class="cat-tab" onclick="app.selectCategory(this, 'research')">리포트</button>
+              <button class="cat-tab" onclick="app.selectCategory(this, 'education')">교육</button>
+              <button class="cat-tab" onclick="app.selectCategory(this, 'creative')">크리에이티브</button>
+            </div>
+          </div>
+
+          <div class="template-gallery" id="template-gallery">
+            <!-- Templates will be injected by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Outline Page (Step 1) -->
+      <div id="page-outline" class="page">
+        <div class="creation-flow">
+          <div class="steps-header">
+            <div class="step active">Outline</div>
+            <div class="step-arrow"><i class="fas fa-chevron-right"></i></div>
+            <div class="step">Style</div>
+            <div class="step-arrow"><i class="fas fa-chevron-right"></i></div>
+            <div class="step">Settings</div>
+          </div>
+
+          <div class="outline-container">
+            <div class="outline-header">
+              <h2>슬라이드 개요</h2>
+              <p>AI가 생성한 개요를 확인하고 수정하세요</p>
+            </div>
+
+            <div class="outline-list" id="outline-list">
+              <!-- Outline items will be injected by JS -->
+            </div>
+          </div>
+
+          <div class="flow-footer">
+            <span class="slide-info" id="outline-slide-count">총 슬라이드 10장</span>
+            <div class="flow-actions">
+              <button class="btn-back" onclick="app.navigate('dashboard')">
+                <i class="fas fa-chevron-left"></i> 이전
+              </button>
+              <button class="btn-next" onclick="app.navigate('style')">
+                다음 <i class="fas fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Style Page (Step 2) -->
+      <div id="page-style" class="page">
+        <div class="creation-flow">
+          <div class="steps-header">
+            <div class="step completed">Outline</div>
+            <div class="step-arrow"><i class="fas fa-chevron-right"></i></div>
+            <div class="step active">Style</div>
+            <div class="step-arrow"><i class="fas fa-chevron-right"></i></div>
+            <div class="step">Settings</div>
+          </div>
+
+          <div class="style-container">
+            <div class="style-preview" id="style-preview">
+              <div class="preview-slide">
+                <div class="preview-slide-content" id="preview-content">
+                  <!-- Preview will be dynamically generated -->
+                </div>
+              </div>
+            </div>
+            <div class="style-options">
+              <h3>스타일 선택</h3>
+              <div class="style-grid" id="style-grid">
+                <!-- Style options will be injected by JS -->
+              </div>
+            </div>
+          </div>
+
+          <div class="flow-footer">
+            <span class="slide-info">총 슬라이드 10장</span>
+            <div class="flow-actions">
+              <button class="btn-back" onclick="app.navigate('outline')">
+                <i class="fas fa-chevron-left"></i> 이전
+              </button>
+              <button class="btn-next" onclick="app.navigate('settings')">
+                확인 및 계속 <i class="fas fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings Page (Step 3) -->
+      <div id="page-settings" class="page">
+        <div class="creation-flow">
+          <div class="steps-header">
+            <div class="step completed">Outline</div>
+            <div class="step-arrow"><i class="fas fa-chevron-right"></i></div>
+            <div class="step completed">Style</div>
+            <div class="step-arrow"><i class="fas fa-chevron-right"></i></div>
+            <div class="step active">Settings</div>
+          </div>
+
+          <div class="settings-container">
+            <h2>고급 설정</h2>
+            <p class="settings-desc">생성 옵션을 세부 조정합니다</p>
+
+            <div class="setting-group">
+              <h3>생성 모드</h3>
+              <div class="mode-cards">
+                <div class="mode-card active" onclick="app.selectMode(this, 'fast')">
+                  <div class="mode-title">Fast</div>
+                  <div class="mode-sub">빠른 생성 · 약 3분</div>
+                  <div class="mode-info">
+                    <span><i class="fas fa-coins"></i> 장당 15크레딧</span>
+                    <span><i class="fas fa-clock"></i> ~2분</span>
+                  </div>
+                </div>
+                <div class="mode-card" onclick="app.selectMode(this, 'quality')">
+                  <div class="mode-title">Quality</div>
+                  <div class="mode-sub">고품질 생성</div>
+                  <div class="mode-info">
+                    <span><i class="fas fa-coins"></i> 장당 60크레딧</span>
+                    <span><i class="fas fa-clock"></i> ~4분</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="setting-group">
+              <label>예상 총 크레딧</label>
+              <div class="credit-display" id="credit-display">150 크레딧</div>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-group half">
+                <h3>디자인 밀도</h3>
+                <div class="option-pills">
+                  <button class="pill active" onclick="app.selectPill(this)">자동</button>
+                  <button class="pill" onclick="app.selectPill(this)">여유</button>
+                  <button class="pill" onclick="app.selectPill(this)">균형</button>
+                  <button class="pill" onclick="app.selectPill(this)">밀집</button>
+                </div>
+              </div>
+              <div class="setting-group half">
+                <h3>문체 톤</h3>
+                <div class="option-pills">
+                  <button class="pill active" onclick="app.selectPill(this)">자동</button>
+                  <button class="pill" onclick="app.selectPill(this)">격식체</button>
+                  <button class="pill" onclick="app.selectPill(this)">친근체</button>
+                  <button class="pill" onclick="app.selectPill(this)">간결체</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="setting-group">
+              <h3>색상</h3>
+              <div class="color-setting">
+                <div class="color-row">
+                  <span class="color-label">배경색</span>
+                  <span class="color-value">자동 (AI가 결정)</span>
+                </div>
+                <div class="color-row">
+                  <span class="color-label">브랜드 컬러</span>
+                  <span class="color-value">자동 (AI가 결정)</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="setting-group">
+              <h3>타이포그래피</h3>
+              <div class="typo-table">
+                <div class="typo-header">
+                  <span>폰트</span>
+                  <span>제목</span>
+                  <span>부제목</span>
+                </div>
+                <div class="typo-row">
+                  <span class="typo-font">Pretendard</span>
+                  <span class="typo-size">32px</span>
+                  <span class="typo-size">18px</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flow-footer">
+            <span class="slide-info">총 슬라이드 10장</span>
+            <div class="flow-actions">
+              <button class="btn-back" onclick="app.navigate('style')">
+                <i class="fas fa-chevron-left"></i> 이전
+              </button>
+              <button class="btn-generate-final" onclick="app.generatePresentation()">
+                <i class="fas fa-magic"></i> 프레젠테이션 생성
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Editor Page -->
+      <div id="page-editor" class="page">
+        <div class="editor-layout">
+          <!-- Editor Top Bar -->
+          <div class="editor-topbar">
+            <div class="editor-topbar-left">
+              <div class="logo-small" onclick="app.navigate('dashboard')">
+                <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
+                  <rect width="28" height="28" rx="6" fill="#4F46E5"/>
+                  <path d="M7 14L11 8L15 14L19 8L23 14" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <span class="editor-title" id="editor-title">본 팀은 빠수히는 웹 콘텐츠 전...</span>
+            </div>
+            <div class="editor-topbar-right">
+              <button class="editor-tool-btn">100%</button>
+              <button class="editor-tool-btn"><i class="far fa-comment"></i></button>
+              <button class="editor-tool-btn"><i class="fas fa-play"></i></button>
+              <div class="credit-badge"><i class="fas fa-coins"></i> 6</div>
+              <button class="btn-export-final" onclick="app.showExportModal()">Export</button>
+            </div>
+          </div>
+
+          <div class="editor-body">
+            <!-- Left Panel -->
+            <div class="editor-left-panel">
+              <div class="panel-section">
+                <div class="panel-icon">
+                  <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                    <rect x="4" y="4" width="40" height="40" rx="4" fill="#E8EDFF"/>
+                    <rect x="8" y="12" width="14" height="10" rx="2" fill="#A5B4FC"/>
+                    <rect x="26" y="12" width="14" height="10" rx="2" fill="#A5B4FC"/>
+                    <rect x="8" y="26" width="14" height="10" rx="2" fill="#A5B4FC"/>
+                    <rect x="26" y="26" width="14" height="10" rx="2" fill="#A5B4FC"/>
+                  </svg>
+                </div>
+                <p class="panel-hint">Here to make your presentation shine</p>
+                <div class="layout-options">
+                  <button class="layout-btn active">Two Column (Text/Image)</button>
+                  <button class="layout-btn">Card Layout</button>
+                  <button class="layout-btn">Full Integrated Background</button>
+                  <button class="layout-btn">Comparison (Left/Right)</button>
+                  <button class="layout-btn">Timeline</button>
+                </div>
+              </div>
+              <div class="panel-actions">
+                <button class="panel-action-btn redesign"><i class="fas fa-wand-magic-sparkles"></i> Redesign</button>
+                <button class="panel-action-btn fix"><i class="fas fa-wrench"></i> Fix Layout</button>
+              </div>
+              <div class="panel-memo">
+                <label>메모</label>
+                <textarea placeholder="이 슬라이드에 대한 메모를 입력하세요..."></textarea>
+              </div>
+              <div class="panel-slide-nav">
+                <span><i class="fas fa-layer-group"></i> Slide <select id="slide-select"></select></span>
+                <div class="slide-dot active"></div>
+              </div>
+            </div>
+
+            <!-- Main Editor Area -->
+            <div class="editor-main">
+              <div class="slide-canvas" id="slide-canvas">
+                <!-- Slide content will be dynamically rendered -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Slide Thumbnails -->
+          <div class="editor-thumbnails" id="editor-thumbnails">
+            <!-- Thumbnails will be injected by JS -->
+          </div>
+        </div>
+
+        <!-- Export Modal -->
+        <div class="modal-overlay" id="export-modal" style="display:none">
+          <div class="modal">
+            <div class="modal-header">
+              <h3>내보내기</h3>
+              <button class="modal-close" onclick="app.hideExportModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="export-options-grid">
+              <button class="export-option" onclick="app.exportAs('figma')">
+                <i class="fab fa-figma"></i>
+                <span>Figma</span>
+              </button>
+              <button class="export-option" onclick="app.exportAs('pptx')">
+                <i class="fas fa-file-powerpoint"></i>
+                <span>PowerPoint</span>
+              </button>
+              <button class="export-option" onclick="app.exportAs('pdf')">
+                <i class="fas fa-file-pdf"></i>
+                <span>PDF</span>
+              </button>
+              <button class="export-option" onclick="app.exportAs('image')">
+                <i class="fas fa-image"></i>
+                <span>이미지</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loading Overlay -->
+      <div class="loading-overlay" id="loading-overlay" style="display:none">
+        <div class="loading-content">
+          <div class="loading-spinner"></div>
+          <h3 id="loading-title">프레젠테이션을 생성하고 있습니다</h3>
+          <p id="loading-desc">AI가 슬라이드를 디자인하고 있어요...</p>
+          <div class="loading-progress">
+            <div class="loading-bar" id="loading-bar"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

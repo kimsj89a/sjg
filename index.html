@@ -3,114 +3,68 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Markdown Editor</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" />
+  <title>Financial Market Dashboard</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <div id="app">
-    <!-- Toolbar -->
-    <div class="toolbar">
-      <div class="toolbar-group">
-        <button type="button" data-action="bold" title="굵게 (Ctrl+B)"><b>B</b></button>
-        <button type="button" data-action="italic" title="기울임 (Ctrl+I)"><i>I</i></button>
-        <button type="button" data-action="strikethrough" title="취소선">
-          <s>S</s>
-        </button>
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <h1 class="logo">Market Dashboard</h1>
+        <span class="clock" id="clock"></span>
       </div>
-      <div class="toolbar-sep"></div>
-      <div class="toolbar-group">
-        <button type="button" data-action="h1" title="제목 1">H1</button>
-        <button type="button" data-action="h2" title="제목 2">H2</button>
-        <button type="button" data-action="h3" title="제목 3">H3</button>
+      <div class="header-right">
+        <span class="status-dot live"></span>
+        <span class="status-text">LIVE</span>
       </div>
-      <div class="toolbar-sep"></div>
-      <div class="toolbar-group">
-        <button type="button" data-action="ul" title="순서 없는 목록">&#8226; List</button>
-        <button type="button" data-action="ol" title="순서 있는 목록">1. List</button>
-        <button type="button" data-action="blockquote" title="인용문">&gt; Quote</button>
-        <button type="button" data-action="code" title="코드 블록">&lt;/&gt;</button>
-        <button type="button" data-action="hr" title="수평선">&#8213;</button>
-      </div>
-      <div class="toolbar-sep"></div>
-      <div class="toolbar-group">
-        <button type="button" data-action="link" title="링크 삽입">&#128279; Link</button>
-        <button type="button" data-action="image" title="이미지 삽입">&#128247; Image</button>
-        <button type="button" data-action="table" title="표 삽입">&#9638; Table</button>
-      </div>
-      <div class="toolbar-sep"></div>
-      <div class="toolbar-group toolbar-right">
-        <button type="button" data-action="copy-word" title="Word 호환 클립보드 복사" class="btn-accent">
-          &#128203; Copy for Word
-        </button>
-      </div>
-    </div>
+    </header>
 
-    <!-- Table dialog -->
-    <div id="table-dialog" class="dialog-overlay hidden">
-      <div class="dialog">
-        <h3>표 삽입</h3>
-        <div class="dialog-body">
-          <label>행 수: <input type="number" id="table-rows" min="1" max="50" value="3" /></label>
-          <label>열 수: <input type="number" id="table-cols" min="1" max="20" value="3" /></label>
-        </div>
-        <div class="dialog-footer">
-          <button type="button" id="table-cancel" class="btn-secondary">취소</button>
-          <button type="button" id="table-insert" class="btn-primary">삽입</button>
-        </div>
-      </div>
-    </div>
+    <!-- Ticker Bar -->
+    <div class="ticker-bar" id="ticker-bar"></div>
 
-    <!-- Image dialog -->
-    <div id="image-dialog" class="dialog-overlay hidden">
-      <div class="dialog">
-        <h3>이미지 삽입</h3>
-        <div class="dialog-body">
-          <div class="tab-bar">
-            <button type="button" class="tab active" data-tab="url">URL</button>
-            <button type="button" class="tab" data-tab="file">파일 업로드</button>
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Sidebar: Instrument List -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">Instruments</div>
+        <ul class="instrument-list" id="instrument-list"></ul>
+      </aside>
+
+      <!-- Chart Area -->
+      <div class="chart-area">
+        <!-- Timeframe Selector -->
+        <div class="chart-toolbar">
+          <div class="chart-title" id="chart-title">S&P 500</div>
+          <div class="timeframe-group" id="timeframe-group">
+            <button class="tf-btn active" data-tf="realtime">Realtime</button>
+            <button class="tf-btn" data-tf="1m">1m</button>
+            <button class="tf-btn" data-tf="5m">5m</button>
+            <button class="tf-btn" data-tf="60m">60m</button>
+            <button class="tf-btn" data-tf="1d">1D</button>
+            <button class="tf-btn" data-tf="1w">1W</button>
+            <button class="tf-btn" data-tf="1M">1M</button>
           </div>
-          <div id="tab-url" class="tab-content">
-            <label>이미지 URL: <input type="url" id="image-url" placeholder="https://example.com/image.png" /></label>
-            <label>대체 텍스트: <input type="text" id="image-alt-url" placeholder="이미지 설명" /></label>
-          </div>
-          <div id="tab-file" class="tab-content hidden">
-            <label>파일 선택:
-              <input type="file" id="image-file" accept="image/*" />
-            </label>
-            <label>대체 텍스트: <input type="text" id="image-alt-file" placeholder="이미지 설명" /></label>
-            <div id="image-preview-container" class="hidden">
-              <img id="image-preview" alt="미리보기" />
-            </div>
+          <div class="chart-type-group">
+            <button class="ct-btn active" data-type="candlestick" title="Candlestick">&#9632;</button>
+            <button class="ct-btn" data-type="line" title="Line">&#9135;</button>
           </div>
         </div>
-        <div class="dialog-footer">
-          <button type="button" id="image-cancel" class="btn-secondary">취소</button>
-          <button type="button" id="image-insert" class="btn-primary">삽입</button>
-        </div>
+        <!-- Chart Container -->
+        <div class="chart-container" id="chart-container"></div>
+        <!-- Price Info -->
+        <div class="price-info" id="price-info"></div>
       </div>
-    </div>
 
-    <!-- Toast notification -->
-    <div id="toast" class="toast hidden"></div>
-
-    <!-- Editor panes -->
-    <div class="editor-container">
-      <div class="pane pane-editor">
-        <div class="pane-header">Markdown</div>
-        <textarea id="editor" spellcheck="false" placeholder="마크다운을 입력하세요..."></textarea>
-      </div>
-      <div class="resizer" id="resizer"></div>
-      <div class="pane pane-preview">
-        <div class="pane-header">Preview</div>
-        <div id="preview" class="preview-content"></div>
-      </div>
+      <!-- Right Panel: Details -->
+      <aside class="detail-panel" id="detail-panel">
+        <div class="detail-header">Market Overview</div>
+        <div class="detail-grid" id="detail-grid"></div>
+      </aside>
     </div>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.9/purify.min.js"></script>
+  <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
